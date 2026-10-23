@@ -23,13 +23,7 @@ func main() {
 			continue
 		}
 
-		log.Println("Connection stablish", conn.RemoteAddr().String())
-		buff := make([]byte, 1024)
-		n, err := conn.Read(buff)
-		if err != nil {
-			log.Println("Reading failed")
-		}
-		log.Println("Number of byte read", len(buff[:n]))
+		go handleConnection(conn)
 	}
 
 }
