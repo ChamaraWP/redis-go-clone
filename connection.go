@@ -19,7 +19,7 @@ func handleConnection(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 
 	for {
-		n, err := parseCommand(reader)
+		values, err := parseCommand(reader)
 
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -30,7 +30,7 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		log.Println("Number of byte read", string(buff[:n]))
+		log.Println("parsed command from resp", values)
 	}
 
 }
