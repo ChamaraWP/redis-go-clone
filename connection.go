@@ -12,7 +12,7 @@ import (
 // TCP listener and check whether it is EOF or has any other error
 // if not i will keep accepting the data and if the function return it will
 // automatically clean it up
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, store *Store) {
 	defer conn.Close()
 
 	log.Println("Connection stablish", conn.RemoteAddr().String())
@@ -23,14 +23,29 @@ func handleConnection(conn net.Conn) {
 
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				log.Println("Connection terminated by the client", conn.RemoteAddr())
+				log.Println("connection terminated by the client", conn.RemoteAddr())
 				return
 			}
-			log.Println("Reading failed", err)
+			log.Println("reading failed", err)
 			return
 		}
 
-		log.Println("parsed command from resp", values)
+		results, err := executeCommand(values, store)
+
+		if err != nil {
+			log.Println("command execution failed", err)
+			return
+		}
+
+		response := encodeResponse(results)
+		_, err = conn.Write([]byte(response))
+
+		if err != nil {
+			log.Println("writing to the connection failed", err)
+			return
+		}
+
+		log.Println("parsed command using RESP", values)
 	}
 
 }
