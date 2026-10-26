@@ -9,6 +9,7 @@ import (
 func main() {
 	fmt.Println("Starting Redis Server")
 	listener, err := net.Listen("tcp", ":6379")
+	store := NewStore()
 
 	if err != nil {
 		log.Fatal(err)
@@ -23,7 +24,7 @@ func main() {
 			continue
 		}
 
-		go handleConnection(conn)
+		go handleConnection(conn, store)
 	}
 
 }
