@@ -90,3 +90,16 @@ func readFullBytes(reader *bufio.Reader) (string, error) {
 	return string(buffer), nil
 
 }
+
+func encodeResponse(results CommandResult) string {
+	switch results.Type {
+	case ResponseSimpleString:
+		return "+" + results.Value + "\r\n"
+	case ResponseBulkString:
+		return "$" + strconv.Itoa((len(results.Value))) + "\r\n" + results.Value + "\r\n"
+	case ResponseNull:
+		return "$-1\r\n"
+
+	}
+	return ""
+}
