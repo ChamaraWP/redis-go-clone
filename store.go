@@ -21,9 +21,9 @@ func (s *Store) Set(key string, value string) {
 
 }
 
-func (s *Store) Get(key string) string {
+func (s *Store) Get(key string) (string, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-
-	return s.data[key]
+	value, ok := s.data[key]
+	return value, ok
 }
