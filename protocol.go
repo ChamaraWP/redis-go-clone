@@ -99,6 +99,8 @@ func encodeResponse(results CommandResult) string {
 		return "$" + strconv.Itoa((len(results.Value))) + "\r\n" + results.Value + "\r\n"
 	case ResponseNull:
 		return "$-1\r\n"
+	case ResponseInteger:
+		return ":" + results.Value + "\r\n"
 
 	}
 	return ""

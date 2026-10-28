@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"log"
+	"strconv"
 	"strings"
 )
 
@@ -11,6 +13,7 @@ const (
 	ResponseSimpleString ResponseType = "simple_string"
 	ResponseBulkString   ResponseType = "bulk_string"
 	ResponseNull         ResponseType = "null"
+	ResponseInteger      ResponseType = "integer"
 )
 
 type CommandResult struct {
@@ -19,6 +22,7 @@ type CommandResult struct {
 }
 
 func executeCommand(parts []string, store *Store) (CommandResult, error) {
+	log.Printf("received payload %s", parts)
 
 	if len(parts) == 0 {
 		return CommandResult{}, errors.New("empty command")
@@ -49,6 +53,24 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 		}
 
 		return CommandResult{Type: ResponseBulkString, Value: value}, nil
+	}
+
+	if command == "INCR" {
+		if (len(parts)) != 2 {
+			return CommandResult{}, errors.New("invalid INCR command")
+		}
+
+		value, err := store.increment(parts[1])
+
+		if err != nil {
+			return CommandResult{}, nil
+		}
+
+		return CommandResult{
+			Type:  ResponseInteger,
+			Value: strconv.Itoa(value),
+		}, nil
+
 	}
 
 	return CommandResult{}, errors.New("invalid Command Received")
