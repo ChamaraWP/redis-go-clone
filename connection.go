@@ -23,6 +23,7 @@ func handleConnection(conn net.Conn, store *Store) {
 
 		if err != nil {
 			if errors.Is(err, io.EOF) {
+				log.Print(err)
 				log.Println("connection terminated by the client", conn.RemoteAddr())
 				return
 			}
@@ -31,6 +32,7 @@ func handleConnection(conn net.Conn, store *Store) {
 		}
 
 		results, err := executeCommand(values, store)
+		log.Print(results)
 
 		if err != nil {
 			log.Println("command execution failed", err)
