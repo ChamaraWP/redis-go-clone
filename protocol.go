@@ -105,3 +105,7 @@ func encodeResponse(results CommandResult) string {
 	}
 	return ""
 }
+
+func encodeError(err error) string {
+	return "-ERR " + err.Error() + "\r\n"
+}

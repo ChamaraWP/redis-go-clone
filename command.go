@@ -63,7 +63,7 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 		value, err := store.increment(parts[1])
 
 		if err != nil {
-			return CommandResult{}, nil
+			return CommandResult{}, err
 		}
 
 		return CommandResult{

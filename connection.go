@@ -32,11 +32,16 @@ func handleConnection(conn net.Conn, store *Store) {
 		}
 
 		results, err := executeCommand(values, store)
-		log.Print(results)
 
 		if err != nil {
-			log.Println("command execution failed", err)
-			return
+			response := encodeError(err)
+			_, writerErr := conn.Write([]byte(response))
+			if writerErr != nil {
+				log.Println("command execution failed", writerErr)
+				return
+			}
+
+			continue
 		}
 
 		response := encodeResponse(results)
