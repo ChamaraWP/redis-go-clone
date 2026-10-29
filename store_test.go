@@ -167,3 +167,39 @@ func TestAutoIncrementMissingKey(t *testing.T) {
 	}
 
 }
+
+func TestStoreConcurrentIncrement(t *testing.T) {
+
+	store := NewStore()
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			_, err := store.increment("counter")
+
+			if err != nil {
+				t.Errorf("increment failed: %v", err)
+			}
+
+		}()
+
+	}
+
+	wg.Wait()
+
+	value, ok := store.Get("counter")
+
+	if !ok {
+		t.Fatal("expected counter to exist")
+	}
+
+	if value != "100" {
+		t.Errorf("expected counter to be 100, got %s", value)
+	}
+
+}
