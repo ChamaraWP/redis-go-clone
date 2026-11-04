@@ -55,16 +55,16 @@ func (s *Store) Get(key string) (string, bool) {
 func (s *Store) increment(key string) (int, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	value, ok := s.data[key]
+	entry, ok := s.data[key]
 
-	if !ok || (!value.ExpiresAt.IsZero() && time.Now().After(value.ExpiresAt)) {
+	if !ok || (!entry.ExpiresAt.IsZero() && time.Now().After(entry.ExpiresAt)) {
 		s.data[key] = Entry{
 			Value: "1",
 		}
 		return 1, nil
 	}
 
-	integerValue, err := strconv.Atoi(value.Value)
+	integerValue, err := strconv.Atoi(entry.Value)
 
 	if err != nil {
 		return 0, errors.New("value is not a number")
@@ -73,7 +73,7 @@ func (s *Store) increment(key string) (int, error) {
 	integerValue++
 	s.data[key] = Entry{
 		Value:     strconv.Itoa(integerValue),
-		ExpiresAt: value.ExpiresAt,
+		ExpiresAt: entry.ExpiresAt,
 	}
 
 	return integerValue, nil
