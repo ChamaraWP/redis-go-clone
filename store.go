@@ -4,20 +4,26 @@ import (
 	"errors"
 	"strconv"
 	"sync"
+	"time"
 )
 
+type Entry struct {
+	Value     string
+	ExpiresAt time.Time
+}
+
 type Store struct {
-	data  map[string]string
+	data  map[string]Entry
 	mutex sync.RWMutex
 }
 
 func NewStore() *Store {
 	return &Store{
-		data: make(map[string]string),
+		data: make(map[string]Entry),
 	}
 }
 
-func (s *Store) Set(key string, value string) {
+func (s *Store) Set(key string, value Entry) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -26,10 +32,24 @@ func (s *Store) Set(key string, value string) {
 }
 
 func (s *Store) Get(key string) (string, bool) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	value, ok := s.data[key]
-	return value, ok
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	entry, ok := s.data[key]
+
+	if !ok {
+		return "", false
+	}
+
+	if !entry.ExpiresAt.IsZero() && time.Now().After(entry.ExpiresAt) {
+
+		delete(s.data, key)
+
+		return "", false
+
+	}
+
+	return entry.Value, ok
 }
 
 func (s *Store) increment(key string) (int, error) {
@@ -37,19 +57,24 @@ func (s *Store) increment(key string) (int, error) {
 	defer s.mutex.Unlock()
 	value, ok := s.data[key]
 
-	if !ok {
-		s.data[key] = "1"
+	if !ok || (!value.ExpiresAt.IsZero() && time.Now().After(value.ExpiresAt)) {
+		s.data[key] = Entry{
+			Value: "1",
+		}
 		return 1, nil
 	}
 
-	integerValue, err := strconv.Atoi(value)
+	integerValue, err := strconv.Atoi(value.Value)
 
 	if err != nil {
 		return 0, errors.New("value is not a number")
 	}
 
 	integerValue++
-	s.data[key] = strconv.Itoa(integerValue)
+	s.data[key] = Entry{
+		Value:     strconv.Itoa(integerValue),
+		ExpiresAt: value.ExpiresAt,
+	}
 
 	return integerValue, nil
 
