@@ -36,7 +36,12 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 		}
 		key := parts[1]
 		value := parts[2]
-		store.Set(key, value)
+
+		entry := Entry{
+			Value: value,
+		}
+
+		store.Set(key, entry)
 		return CommandResult{Type: ResponseSimpleString, Value: "OK"}, nil
 	}
 
