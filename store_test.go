@@ -4,12 +4,13 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestStoreSetAndGet(t *testing.T) {
 	store := NewStore()
 
-	store.Set("username", "alex")
+	store.Set("username", Entry{Value: "alex", ExpiresAt: time.Now().Add(10 * time.Second)})
 
 	value, ok := store.Get("username")
 
@@ -21,6 +22,39 @@ func TestStoreSetAndGet(t *testing.T) {
 		t.Errorf("expected alex %s", value)
 	}
 
+}
+
+func TestStoreSetAndGetWithTtl(t *testing.T) {
+	store := NewStore()
+
+	store.Set("username", Entry{Value: "alex", ExpiresAt: time.Now().Add(2 * time.Second)})
+
+	value, ok := store.Get("username")
+
+	if !ok {
+		t.Fatalf("expected value to be exist")
+	}
+
+	if value != "alex" && value != "" {
+		t.Errorf("expected alex %s and should not be empty", value)
+	}
+
+}
+
+func TestStoreTTLExpiration(t *testing.T) {
+	store := NewStore()
+
+	store.Set("username", Entry{Value: "alex", ExpiresAt: time.Now().Add(-1 * time.Second)})
+
+	value, ok := store.Get("username")
+
+	if ok {
+		t.Fatal("expected key to be expired")
+	}
+
+	if value != "" {
+		t.Errorf("expected empty value, got %s", value)
+	}
 }
 
 func TestStoreGetMissingKey(t *testing.T) {
@@ -46,7 +80,7 @@ func TestConcurrencyAccess(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			store.Set("username", "alex")
+			store.Set("username", Entry{Value: "alex"})
 		}()
 	}
 
@@ -67,7 +101,7 @@ func TestConcurrencyAccessMultipleKey(t *testing.T) {
 
 			key := "key" + strconv.Itoa(index)
 			value := "value" + strconv.Itoa(index)
-			store.Set(key, value)
+			store.Set(key, Entry{Value: value})
 		}(i)
 	}
 
@@ -95,7 +129,7 @@ func TestConcurrencyAccessMultipleKey(t *testing.T) {
 func TestStoreIncrement(t *testing.T) {
 	store := NewStore()
 
-	store.Set("incr", "11")
+	store.Set("incr", Entry{Value: "11"})
 
 	value, err := store.increment("incr")
 
@@ -122,7 +156,7 @@ func TestStoreIncrement(t *testing.T) {
 func TestStoreIncrementNonNumeric(t *testing.T) {
 	store := NewStore()
 
-	store.Set("counter", "hello")
+	store.Set("counter", Entry{Value: "hello"})
 
 	_, err := store.increment("counter")
 
@@ -202,4 +236,98 @@ func TestStoreConcurrentIncrement(t *testing.T) {
 		t.Errorf("expected counter to be 100, got %s", value)
 	}
 
+}
+
+func TestStoreIncrementWithNoExpiredTtl(t *testing.T) {
+	store := NewStore()
+
+	expiresAt := time.Now().Add(5 * time.Second)
+
+	store.Set("incr", Entry{Value: "11", ExpiresAt: expiresAt})
+
+	value, err := store.increment("incr")
+
+	if err != nil {
+		t.Fatalf("increment failed")
+	}
+
+	if value != 12 {
+		t.Errorf("expected value 12 but received %d", value)
+	}
+
+	store.mutex.RLock()
+	entry := store.data["incr"]
+	store.mutex.RUnlock()
+
+	if entry.Value != "12" {
+		t.Fatal("incremented value should exists")
+	}
+
+	if !entry.ExpiresAt.Equal(expiresAt) {
+		t.Errorf("expected expiry to remain unchanged")
+	}
+}
+
+func TestStoreIncrementWithExpiredTtl(t *testing.T) {
+	store := NewStore()
+
+	expiresAt := time.Now().Add(-1 * time.Second)
+
+	store.Set("incr", Entry{Value: "11", ExpiresAt: expiresAt})
+
+	value, err := store.increment("incr")
+
+	if err != nil {
+		t.Fatalf("increment failed")
+	}
+
+	if value != 1 {
+		t.Errorf("expected value 1 but received %d", value)
+	}
+
+	store.mutex.RLock()
+	entry, ok := store.data["incr"]
+	store.mutex.RUnlock()
+
+	if !ok {
+		t.Fatal("expected incr key to exist")
+	}
+
+	if entry.Value != "1" {
+		t.Errorf("expected stored value 1, got %s", entry.Value)
+	}
+
+	if !entry.ExpiresAt.IsZero() {
+		t.Errorf("expected expiry to be zero")
+	}
+}
+
+func TestStoreIncrementWithNonNumericWithTtl(t *testing.T) {
+	store := NewStore()
+
+	expiresAt := time.Now().Add(5 * time.Second)
+
+	store.Set("incr", Entry{Value: "hello", ExpiresAt: expiresAt})
+
+	_, err := store.increment("incr")
+
+	if err == nil {
+		t.Fatal("expected increment to return an error for non-numeric value")
+	}
+
+	store.mutex.RLock()
+	entry, ok := store.data["incr"]
+	store.mutex.RUnlock()
+
+	if !ok {
+		t.Fatal("expected incr key to exist")
+	}
+
+	if entry.Value != "hello" {
+		t.Errorf("expected stored value hello, got %s", entry.Value)
+	}
+
+	if !entry.ExpiresAt.Equal(expiresAt) {
+		t.Errorf("expected expiry to remain unchanged")
+	}
 }
