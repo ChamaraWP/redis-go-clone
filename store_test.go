@@ -331,3 +331,92 @@ func TestStoreIncrementWithNonNumericWithTtl(t *testing.T) {
 		t.Errorf("expected expiry to remain unchanged")
 	}
 }
+
+func TestExistingKeyPositiveDuration(t *testing.T) {
+
+	store := NewStore()
+
+	store.Set("session", Entry{Value: "testingExp"})
+
+	ok := store.Expire("session", 20*time.Second)
+
+	if !ok {
+		t.Fatal("expected EXPIRE to succeed")
+	}
+
+	store.mutex.RLock()
+	entry, ok := store.data["session"]
+	store.mutex.RUnlock()
+
+	if !ok {
+		t.Fatal("expected key to exists")
+	}
+
+	if entry.ExpiresAt.IsZero() {
+		t.Fatal("expected Expire At to exists")
+	}
+
+	if !entry.ExpiresAt.After(time.Now()) {
+		t.Fatal("expected expiry to be in the future")
+	}
+
+}
+
+func TestStoreExpireWithMissingKey(t *testing.T) {
+	store := NewStore()
+
+	ok := store.Expire("noKey", 20*time.Second)
+
+	if ok {
+		t.Fatal("expected EXPIRE to return false for missing key")
+	}
+
+	_, exists := store.Get("noKey")
+
+	if exists {
+		t.Fatal("expected missing key to remain missing")
+	}
+}
+
+func TestStoreAlreadyExpiredKey(t *testing.T) {
+	store := NewStore()
+
+	store.Set("expiredSession", Entry{
+		Value:     "ExpiredSessionValue",
+		ExpiresAt: time.Now().Add(-1 * time.Second),
+	})
+
+	ok := store.Expire("expiredSession", 10*time.Second)
+
+	if ok {
+		t.Fatal("expected EXPIRE to return false expired entry")
+	}
+
+	_, ok = store.Get("expiredSession")
+
+	if ok {
+		t.Fatal("expected expired key to be removed")
+	}
+}
+
+func TestStoreWithExistingKeyWithZeroOrMinusTtl(t *testing.T) {
+
+	store := NewStore()
+
+	store.Set("session", Entry{
+		Value: "SessionValue",
+	})
+
+	ok := store.Expire("session", 0)
+
+	if !ok {
+		t.Fatal("expected EXPIRE to succeed for existing key")
+	}
+
+	_, exists := store.Get("session")
+
+	if exists {
+		t.Fatal("expected key to be removed after EXPIRE with zero TTL")
+	}
+
+}
