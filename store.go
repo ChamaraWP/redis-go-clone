@@ -79,3 +79,34 @@ func (s *Store) Increment(key string) (int, error) {
 	return integerValue, nil
 
 }
+
+func (s *Store) Expire(key string, duration time.Duration) bool {
+
+	s.mutex.Lock()
+
+	defer s.mutex.Unlock()
+
+	entry, ok := s.data[key]
+
+	if !ok {
+		return false
+	}
+
+	now := time.Now()
+
+	if !entry.ExpiresAt.IsZero() && time.Now().After(entry.ExpiresAt) {
+		delete(s.data, key)
+		return false
+	}
+
+	if duration <= 0 {
+		delete(s.data, key)
+		return true
+	}
+
+	entry.ExpiresAt = now.Add(duration)
+
+	s.data[key] = entry
+	return true
+
+}

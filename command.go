@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ResponseType string
@@ -74,6 +75,34 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 		return CommandResult{
 			Type:  ResponseInteger,
 			Value: strconv.Itoa(value),
+		}, nil
+
+	}
+
+	if command == "EXPIRE" {
+
+		if (len(parts)) != 3 {
+			return CommandResult{}, errors.New("invalid EXPIRE command")
+		}
+
+		seconds, err := strconv.Atoi(parts[2])
+
+		if err != nil {
+			return CommandResult{}, err
+		}
+
+		timeInSeconds := time.Duration(seconds) * time.Second
+
+		value := store.Expire(parts[1], timeInSeconds)
+
+		returnValue := "0"
+		if value {
+			returnValue = "1"
+		}
+
+		return CommandResult{
+			Type:  ResponseInteger,
+			Value: returnValue,
 		}, nil
 
 	}
