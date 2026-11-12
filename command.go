@@ -65,7 +65,7 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 			return CommandResult{}, errors.New("invalid INCR command")
 		}
 
-		value, err := store.increment(parts[1])
+		value, err := store.Increment(parts[1])
 
 		if err != nil {
 			return CommandResult{}, err

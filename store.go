@@ -52,7 +52,7 @@ func (s *Store) Get(key string) (string, bool) {
 	return entry.Value, ok
 }
 
-func (s *Store) increment(key string) (int, error) {
+func (s *Store) Increment(key string) (int, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	entry, ok := s.data[key]

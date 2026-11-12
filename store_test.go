@@ -131,7 +131,7 @@ func TestStoreIncrement(t *testing.T) {
 
 	store.Set("incr", Entry{Value: "11"})
 
-	value, err := store.increment("incr")
+	value, err := store.Increment("incr")
 
 	if err != nil {
 		t.Fatalf("increment failed")
@@ -158,7 +158,7 @@ func TestStoreIncrementNonNumeric(t *testing.T) {
 
 	store.Set("counter", Entry{Value: "hello"})
 
-	_, err := store.increment("counter")
+	_, err := store.Increment("counter")
 
 	if err == nil {
 		t.Fatal("expected increment to return an error for non-numeric value")
@@ -180,7 +180,7 @@ func TestAutoIncrementMissingKey(t *testing.T) {
 
 	store := NewStore()
 
-	value, err := store.increment("incr")
+	value, err := store.Increment("incr")
 
 	if err != nil {
 		t.Fatal("increment failed for missing key")
@@ -214,7 +214,7 @@ func TestStoreConcurrentIncrement(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			_, err := store.increment("counter")
+			_, err := store.Increment("counter")
 
 			if err != nil {
 				t.Errorf("increment failed: %v", err)
@@ -245,7 +245,7 @@ func TestStoreIncrementWithNoExpiredTtl(t *testing.T) {
 
 	store.Set("incr", Entry{Value: "11", ExpiresAt: expiresAt})
 
-	value, err := store.increment("incr")
+	value, err := store.Increment("incr")
 
 	if err != nil {
 		t.Fatalf("increment failed")
@@ -275,7 +275,7 @@ func TestStoreIncrementWithExpiredTtl(t *testing.T) {
 
 	store.Set("incr", Entry{Value: "11", ExpiresAt: expiresAt})
 
-	value, err := store.increment("incr")
+	value, err := store.Increment("incr")
 
 	if err != nil {
 		t.Fatalf("increment failed")
@@ -309,7 +309,7 @@ func TestStoreIncrementWithNonNumericWithTtl(t *testing.T) {
 
 	store.Set("incr", Entry{Value: "hello", ExpiresAt: expiresAt})
 
-	_, err := store.increment("incr")
+	_, err := store.Increment("incr")
 
 	if err == nil {
 		t.Fatal("expected increment to return an error for non-numeric value")
