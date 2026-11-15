@@ -420,3 +420,86 @@ func TestStoreWithExistingKeyWithZeroOrMinusTtl(t *testing.T) {
 	}
 
 }
+
+func TestStoreTtlWithMissingKey(t *testing.T) {
+	store := NewStore()
+
+	remaining, status := store.TTL("missingKey")
+
+	if remaining != 0 || status != TTLKeyMissing {
+		t.Fatalf(
+			"expected remaining=0 and status=TTLKeyMissing, got remaining=%v status=%v",
+			remaining,
+			status,
+		)
+	}
+
+}
+
+func TestStoreTtlWithNoExpiry(t *testing.T) {
+	store := NewStore()
+
+	store.Set("KeyWithNoExpiry", Entry{
+		Value: "ValueWithNoExpiry",
+	})
+
+	remaining, status := store.TTL("KeyWithNoExpiry")
+
+	if remaining != 0 || status != TTLNoExpiry {
+		t.Fatalf(
+			"expected remaining=0 and status=TTLNoExpiry, got remaining=%v status=%v",
+			remaining,
+			status,
+		)
+	}
+}
+
+func TestStoreTtlWithActiveExpiry(t *testing.T) {
+	store := NewStore()
+
+	store.Set("KeyWithActiveExpiry", Entry{
+		Value:     "ValueWithActiveExpiry",
+		ExpiresAt: time.Now().Add(10 * time.Second),
+	})
+
+	remaining, status := store.TTL("KeyWithActiveExpiry")
+
+	if status != TTLHasExpiry {
+		t.Fatalf("expected TTLHasExpiry, got %v", status)
+	}
+
+	if remaining <= 0 {
+		t.Fatalf("expected positive remaining TTL, got %v", remaining)
+	}
+
+	if remaining > 10*time.Second {
+		t.Fatalf("expected remaining TTL <= 10s, got %v", remaining)
+	}
+
+}
+
+func TestStoreTtlWithHasExpireValueButExpired(t *testing.T) {
+
+	store := NewStore()
+
+	store.Set("KeyWithExpiryButExpired", Entry{
+		Value:     "ValueKeyWithExpiryButExpired",
+		ExpiresAt: time.Now().Add(-1 * time.Second),
+	})
+
+	remaining, status := store.TTL("KeyWithExpiryButExpired")
+
+	if remaining != 0 || status != TTLKeyMissing {
+		t.Fatalf(
+			"expected remaining=0 and status=TTLKeyMissing, got remaining=%v status=%v",
+			remaining,
+			status,
+		)
+	}
+
+	_, exists := store.Get("KeyWithExpiryButExpired")
+
+	if exists {
+		t.Fatal("expected expired key to be removed")
+	}
+}
