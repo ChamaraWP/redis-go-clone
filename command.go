@@ -107,6 +107,43 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 
 	}
 
+	if command == "TTL" {
+		if (len(parts)) != 2 {
+			return CommandResult{}, errors.New("invalid TTL command")
+		}
+
+		key := parts[1]
+
+		value, status := store.TTL(key)
+
+		switch status {
+
+		case TTLKeyMissing:
+			return CommandResult{
+				Type:  ResponseInteger,
+				Value: "-2",
+			}, nil
+
+		case TTLNoExpiry:
+			return CommandResult{
+				Type:  ResponseInteger,
+				Value: "-1",
+			}, nil
+
+		case TTLHasExpiry:
+			seconds := int64(value / time.Second)
+
+			return CommandResult{
+				Type:  ResponseInteger,
+				Value: strconv.FormatInt(seconds, 10),
+			}, nil
+
+		default:
+			return CommandResult{}, errors.New("unknown TTL status")
+		}
+
+	}
+
 	return CommandResult{}, errors.New("invalid Command Received")
 
 }
