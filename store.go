@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -42,11 +43,9 @@ func (s *Store) Get(key string) (string, bool) {
 	}
 
 	if !entry.ExpiresAt.IsZero() && time.Now().After(entry.ExpiresAt) {
-
+		println("expired key found %s", key)
 		delete(s.data, key)
-
 		return "", false
-
 	}
 
 	return entry.Value, ok
@@ -105,6 +104,7 @@ func (s *Store) Expire(key string, duration time.Duration) bool {
 	}
 
 	entry.ExpiresAt = now.Add(duration)
+	fmt.Printf("expiry set to %+v\n", entry)
 
 	s.data[key] = entry
 	return true
