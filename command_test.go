@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"testing"
 	"time"
 )
@@ -129,5 +130,144 @@ func TestExecuteCommandWrongArgumentCount(t *testing.T) {
 
 	if value != "wrongArgumentValue" {
 		t.Fatalf("expected value wrongArgumentValue, got %s", value)
+	}
+}
+
+func TestCommandTTLExtraArgument(t *testing.T) {
+
+	store := NewStore()
+
+	parts := []string{
+		"TTL",
+		"TTLExtraArg",
+		"abc",
+	}
+
+	_, err := executeCommand(parts, store)
+
+	if err == nil {
+		t.Fatal("expected error for extra argument")
+	}
+
+}
+
+func TestCommandTTLMissingKey(t *testing.T) {
+
+	store := NewStore()
+
+	parts := []string{
+		"TTL",
+		"TTLKeyMissing",
+	}
+
+	value, err := executeCommand(parts, store)
+
+	if err != nil {
+		t.Fatal("expect to give correct status")
+	}
+
+	if value.Type != ResponseInteger {
+		t.Fatalf("expected ResponseInteger, got %v", value.Type)
+	}
+
+	if value.Value != "-2" {
+		t.Fatalf("expected value to be -2 but %s", value.Value)
+	}
+
+}
+
+func TestCommandTTLNoExpiry(t *testing.T) {
+
+	store := NewStore()
+
+	store.Set("TTLNoExpiry", Entry{
+		Value: "ValueTTLNoExpiry",
+	})
+
+	parts := []string{
+		"TTL",
+		"TTLNoExpiry",
+	}
+
+	value, err := executeCommand(parts, store)
+
+	if err != nil {
+		t.Fatal("expect to give correct status")
+	}
+
+	if value.Type != ResponseInteger {
+		t.Fatalf("expected ResponseInteger, got %v", value.Type)
+	}
+
+	if value.Value != "-1" {
+		t.Fatalf("expected value to be -1 but %s", value.Value)
+	}
+}
+
+func TestCommandTTLHasExpiry(t *testing.T) {
+
+	store := NewStore()
+
+	store.Set("TTLHasExpiry", Entry{
+		Value:     "ValueTTLHasExpiry",
+		ExpiresAt: time.Now().Add(10 * time.Second),
+	})
+
+	parts := []string{
+		"TTL",
+		"TTLHasExpiry",
+	}
+
+	value, err := executeCommand(parts, store)
+
+	if err != nil {
+		t.Fatal("expect to give correct status")
+	}
+
+	if value.Type != ResponseInteger {
+		t.Fatalf("expected ResponseInteger, got %v", value.Type)
+	}
+
+	remaining, err := strconv.Atoi(value.Value)
+
+	if err != nil {
+		t.Fatalf("expected TTL response to be an integer, got %q", value.Value)
+	}
+
+	if remaining <= 0 {
+		t.Fatalf("expected value to be greater than 0 but %d", remaining)
+	}
+
+	if remaining > 10 {
+		t.Fatalf("expected value to be smaller than 10 but %d", remaining)
+	}
+}
+
+func TestCommandTTLExpiredKey(t *testing.T) {
+
+	store := NewStore()
+
+	store.Set("ActiveKeyButExpired", Entry{
+		Value:     "ActiveKeyValueButExpired",
+		ExpiresAt: time.Now().Add(-1 * time.Second),
+	})
+
+	parts := []string{
+		"TTL",
+		"ActiveKeyButExpired",
+	}
+
+	value, err := executeCommand(parts, store)
+
+	if err != nil {
+		t.Fatal("expect to give correct status")
+	}
+
+	if value.Type != ResponseInteger {
+		t.Fatalf("expected ResponseInteger, got %v", value.Type)
+	}
+
+	if value.Value != "-2" {
+		t.Fatalf("expected value to be -2 but %s", value.Value)
 	}
 }
