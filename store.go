@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+type TTLStatus int
+
+const (
+	TTLKeyMissing TTLStatus = iota
+	TTLNoExpiry
+	TTLHasExpiry
+)
+
 type Entry struct {
 	Value     string
 	ExpiresAt time.Time
@@ -109,4 +117,31 @@ func (s *Store) Expire(key string, duration time.Duration) bool {
 	s.data[key] = entry
 	return true
 
+}
+
+func (s *Store) TTL(key string) (time.Duration, TTLStatus) {
+	s.mutex.Lock()
+
+	defer s.mutex.Unlock()
+
+	entry, ok := s.data[key]
+
+	if !ok {
+		return 0, TTLKeyMissing
+	}
+
+	if entry.ExpiresAt.IsZero() {
+		return 0, TTLNoExpiry
+	}
+
+	now := time.Now()
+
+	if now.After(entry.ExpiresAt) {
+		delete(s.data, key)
+		return 0, TTLKeyMissing
+	}
+
+	remaining := time.Until(entry.ExpiresAt)
+
+	return remaining, TTLHasExpiry
 }
