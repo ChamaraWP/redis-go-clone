@@ -145,3 +145,32 @@ func (s *Store) TTL(key string) (time.Duration, TTLStatus) {
 
 	return remaining, TTLHasExpiry
 }
+
+func (s *Store) Delete(keys ...string) int {
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	var count = 0
+	now := time.Now()
+
+	for _, key := range keys {
+
+		entry, ok := s.data[key]
+
+		if !ok {
+			continue
+		}
+
+		if !entry.ExpiresAt.IsZero() && now.After(entry.ExpiresAt) {
+			delete(s.data, key)
+			continue
+		}
+
+		delete(s.data, key)
+		count++
+
+	}
+
+	return count
+}
