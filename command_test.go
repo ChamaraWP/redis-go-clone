@@ -391,3 +391,157 @@ func TestCommandDeleteMissingArguments(t *testing.T) {
 	}
 
 }
+
+func TestCommandExistsLiveKey(t *testing.T) {
+	store := NewStore()
+
+	store.Set("existingKey", Entry{Value: "existingValue"})
+
+	parts := []string{
+		"EXISTS",
+		"existingKey",
+	}
+
+	value, err := executeCommand(parts, store)
+
+	if err != nil {
+		t.Fatal("expect to give correct count")
+	}
+
+	if value.Type != ResponseInteger {
+		t.Fatalf("expected ResponseInteger, got %v", value.Type)
+	}
+
+	if value.Value != "1" {
+		t.Fatalf("expected entry count to be 1 but %s", value.Value)
+	}
+
+	_, ok := store.Get("existingKey")
+
+	if !ok {
+		t.Fatal("expected entry to exists")
+	}
+
+}
+
+func TestCommandExistsMissingKey(t *testing.T) {
+	store := NewStore()
+
+	parts := []string{
+		"EXISTS",
+		"missingKey",
+	}
+
+	value, err := executeCommand(parts, store)
+
+	if err != nil {
+		t.Fatal("expect to give correct count")
+	}
+
+	if value.Type != ResponseInteger {
+		t.Fatalf("expected ResponseInteger, got %v", value.Type)
+	}
+
+	if value.Value != "0" {
+		t.Fatalf("expected entry count to be 0 but %s", value.Value)
+	}
+
+	_, ok := store.Get("missingKey")
+
+	if ok {
+		t.Fatal("expected entry to not exists")
+	}
+
+}
+
+func TestCommandExistsExpiredKey(t *testing.T) {
+	store := NewStore()
+
+	store.Set("expiredKey", Entry{Value: "expiredValue", ExpiresAt: time.Now().Add(-1 * time.Second)})
+
+	parts := []string{
+		"EXISTS",
+		"expiredKey",
+	}
+
+	value, err := executeCommand(parts, store)
+
+	if err != nil {
+		t.Fatal("expect to give correct count")
+	}
+
+	if value.Value != "0" {
+		t.Fatalf("expected deleted entry count to be 0 but %s", value.Value)
+	}
+
+	if value.Type != ResponseInteger {
+		t.Fatalf("expected ResponseInteger, got %v", value.Type)
+	}
+
+	_, ok := store.Get("expiredKey")
+
+	if ok {
+		t.Fatal("expected entry to no to exists after expired")
+	}
+
+}
+
+func TestCommandExistsMixedKeys(t *testing.T) {
+	store := NewStore()
+
+	store.Set("a", Entry{Value: "A", ExpiresAt: time.Now().Add(10 * time.Second)})
+	store.Set("b", Entry{Value: "B", ExpiresAt: time.Now().Add(-10 * time.Second)})
+	store.Set("c", Entry{Value: "C"})
+
+	parts := []string{
+		"EXISTS",
+		"a",
+		"b",
+		"c",
+		"d",
+	}
+
+	value, err := executeCommand(parts, store)
+
+	if err != nil {
+		t.Fatal("expect to give correct count")
+	}
+
+	if value.Type != ResponseInteger {
+		t.Fatalf("expected ResponseInteger, got %v", value.Type)
+	}
+
+	if value.Value != "2" {
+		t.Fatalf("expected existing entry count to be 2 but got %s", value.Value)
+	}
+
+	_, okA := store.Get("a")
+	_, okB := store.Get("b")
+	_, okC := store.Get("c")
+
+	if !okA || !okC {
+		t.Fatal("expected live entries a and c to still exist")
+	}
+
+	if okB {
+		t.Fatal("expect the entries to not to exists")
+	}
+
+}
+
+func TestCommandExistsMissingArguments(t *testing.T) {
+	store := NewStore()
+
+	store.Set("wrongArgsCount", Entry{Value: "wrongArgsCountValue"})
+
+	parts := []string{
+		"EXISTS",
+	}
+
+	_, err := executeCommand(parts, store)
+
+	if err == nil {
+		t.Fatal("expected error for insufficient argument")
+	}
+
+}
