@@ -151,7 +151,7 @@ func (s *Store) Delete(keys ...string) int {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	var count = 0
+	count := 0
 	now := time.Now()
 
 	for _, key := range keys {
@@ -173,4 +173,33 @@ func (s *Store) Delete(keys ...string) int {
 	}
 
 	return count
+}
+
+func (s *Store) Exists(keys ...string) int {
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	count := 0
+	now := time.Now()
+
+	for _, key := range keys {
+
+		entry, ok := s.data[key]
+
+		if !ok {
+			continue
+		}
+
+		if !entry.ExpiresAt.IsZero() && now.After(entry.ExpiresAt) {
+			delete(s.data, key)
+			continue
+		}
+
+		count++
+
+	}
+
+	return count
+
 }
