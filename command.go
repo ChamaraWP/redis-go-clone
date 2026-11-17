@@ -149,8 +149,8 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 			return CommandResult{}, errors.New("invalid DEL command")
 		}
 
-		key := parts[1:]
-		count := strconv.Itoa(store.Delete(key...))
+		keys := parts[1:]
+		count := strconv.Itoa(store.Delete(keys...))
 
 		return CommandResult{Type: ResponseInteger, Value: count}, nil
 	}
@@ -160,8 +160,8 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 			return CommandResult{}, errors.New("invalid EXISTS command")
 		}
 
-		key := parts[1:]
-		count := strconv.Itoa(store.Exists(key...))
+		keys := parts[1:]
+		count := strconv.Itoa(store.Exists(keys...))
 
 		return CommandResult{Type: ResponseInteger, Value: count}, nil
 	}
