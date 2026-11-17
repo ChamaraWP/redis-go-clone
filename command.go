@@ -144,6 +144,17 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 
 	}
 
+	if command == "DEL" {
+		if (len(parts)) < 2 {
+			return CommandResult{}, errors.New("invalid DEL command")
+		}
+
+		key := parts[1:]
+		count := strconv.Itoa(store.Delete(key...))
+
+		return CommandResult{Type: ResponseInteger, Value: count}, nil
+	}
+
 	return CommandResult{}, errors.New("invalid Command Received")
 
 }
