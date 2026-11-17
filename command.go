@@ -155,6 +155,17 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 		return CommandResult{Type: ResponseInteger, Value: count}, nil
 	}
 
+	if command == "EXISTS" {
+		if (len(parts)) < 2 {
+			return CommandResult{}, errors.New("invalid EXISTS command")
+		}
+
+		key := parts[1:]
+		count := strconv.Itoa(store.Exists(key...))
+
+		return CommandResult{Type: ResponseInteger, Value: count}, nil
+	}
+
 	return CommandResult{}, errors.New("invalid Command Received")
 
 }
