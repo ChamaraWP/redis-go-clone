@@ -503,3 +503,75 @@ func TestStoreTtlWithHasExpireValueButExpired(t *testing.T) {
 		t.Fatal("expected expired key to be removed")
 	}
 }
+
+func TestStoreDeleteExistingLiveKey(t *testing.T) {
+	store := NewStore()
+
+	store.Set("existingLiveKey", Entry{Value: "existingLiveValue"})
+
+	count := store.Delete("existingLiveKey")
+
+	if count != 1 {
+		t.Fatalf("expected deleted entry count to be 1 but %d", count)
+	}
+
+	_, ok := store.Get("existingLiveKey")
+
+	if ok {
+		t.Fatal("expected entry to no to exists after delete")
+	}
+
+}
+
+func TestStoreDeleteMissingKey(t *testing.T) {
+	store := NewStore()
+
+	count := store.Delete("missingKey")
+
+	if count != 0 {
+		t.Fatalf("expected count be 0 but %d", count)
+	}
+
+}
+
+func TestStoreDeleteExpiredKey(t *testing.T) {
+	store := NewStore()
+
+	store.Set("expiredKey", Entry{Value: "expiredKeyValue", ExpiresAt: time.Now().Add(-1 * time.Second)})
+
+	count := store.Delete("expiredKey")
+
+	if count != 0 {
+		t.Fatalf("expected count be 0 but %d", count)
+	}
+
+	_, ok := store.Get("expiredKey")
+
+	if ok {
+		t.Fatal("expect the entry to not to exists")
+	}
+
+}
+
+func TestStoreDeleteMixedKeys(t *testing.T) {
+	store := NewStore()
+
+	store.Set("a", Entry{Value: "A", ExpiresAt: time.Now().Add(10 * time.Second)})
+	store.Set("b", Entry{Value: "B", ExpiresAt: time.Now().Add(-10 * time.Second)})
+	store.Set("C", Entry{Value: "c"})
+
+	count := store.Delete("a", "b", "c", "d")
+
+	if count != 2 {
+		t.Fatalf("expected count be 2 but %d", count)
+	}
+
+	_, okA := store.Get("a")
+	_, okB := store.Get("b")
+	_, okC := store.Get("c")
+
+	if okA || okB || okC {
+		t.Fatal("expect the entries to not to exists")
+	}
+
+}
