@@ -558,7 +558,7 @@ func TestStoreDeleteMixedKeys(t *testing.T) {
 
 	store.Set("a", Entry{Value: "A", ExpiresAt: time.Now().Add(10 * time.Second)})
 	store.Set("b", Entry{Value: "B", ExpiresAt: time.Now().Add(-10 * time.Second)})
-	store.Set("C", Entry{Value: "c"})
+	store.Set("c", Entry{Value: "c"})
 
 	count := store.Delete("a", "b", "c", "d")
 
@@ -572,6 +572,80 @@ func TestStoreDeleteMixedKeys(t *testing.T) {
 
 	if okA || okB || okC {
 		t.Fatal("expect the entries to not to exists")
+	}
+
+}
+func TestStoreExistsLiveKey(t *testing.T) {
+	store := NewStore()
+
+	store.Set("existsLiveKey", Entry{
+		Value: "existsLiveValue",
+	})
+
+	count := store.Exists("existsLiveKey")
+
+	if count != 1 {
+		t.Fatalf("expected exists entry count to be 1 but %d", count)
+	}
+
+}
+
+func TestStoreExistsMissingKey(t *testing.T) {
+	store := NewStore()
+
+	count := store.Exists("missingKey")
+
+	if count != 0 {
+		t.Fatalf("expected exists entry count to be 0 but %d", count)
+	}
+
+}
+
+func TestStoreExistsExpiredKey(t *testing.T) {
+	store := NewStore()
+
+	store.Set("expiredKey", Entry{
+		Value:     "expiredValue",
+		ExpiresAt: time.Now().Add(-1 * time.Second),
+	})
+
+	count := store.Exists("expiredKey")
+
+	if count != 0 {
+		t.Fatalf("expected expired entry count to be 0 but %d", count)
+	}
+
+	_, ok := store.Get("expiredKey")
+
+	if ok {
+		t.Fatal("expect entry to not to exists")
+	}
+
+}
+
+func TestStoreExistsMixedKeys(t *testing.T) {
+	store := NewStore()
+
+	store.Set("a", Entry{Value: "A", ExpiresAt: time.Now().Add(10 * time.Second)})
+	store.Set("b", Entry{Value: "B", ExpiresAt: time.Now().Add(-10 * time.Second)})
+	store.Set("c", Entry{Value: "c"})
+
+	count := store.Exists("a", "b", "c", "d")
+
+	if count != 2 {
+		t.Fatalf("expected count be 2 but %d", count)
+	}
+
+	_, okA := store.Get("a")
+	_, okB := store.Get("b")
+	_, okC := store.Get("c")
+
+	if !okA || !okC {
+		t.Fatal("expect the entries to exists")
+	}
+
+	if okB {
+		t.Fatal("expect the entry to no to exists")
 	}
 
 }
