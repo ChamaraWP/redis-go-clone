@@ -2,7 +2,7 @@
 
 This project is a small Redis-like server built in Go as a systems-programming learning exercise.
 
-The goal is not to recreate Redis feature-for-feature. The goal is to understand the engineering concepts that sit underneath systems like Redis by implementing them incrementally.
+The goal is not to recreate Redis feature-for-feature. The goal is to understand the engineering concepts that sit underneath systems like Redis by implementing them incrementally while **learning go**.
 
 ## Why this project exists
 
