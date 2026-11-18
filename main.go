@@ -16,15 +16,6 @@ func main() {
 		fmt.Println("Redis Server Terminating")
 	}
 
-	for {
-		conn, err := listener.Accept()
-
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		go handleConnection(conn, store)
-	}
+	serve(listener, store)
 
 }
