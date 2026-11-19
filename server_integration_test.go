@@ -2,7 +2,11 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"net"
+	"strconv"
+	"strings"
+	"sync"
 	"testing"
 )
 
@@ -173,6 +177,127 @@ func TestTCPSharedStateAcrossConnections(t *testing.T) {
 
 	if responseB != "$3\r\nbar\r\n" {
 		t.Fatalf("expected response to be $3\\r\\nbar\\r\\n but got %q", responseB)
+	}
+
+}
+
+func TestTCPConcurrentIncrement(t *testing.T) {
+
+	store := NewStore()
+
+	listener, err := net.Listen("tcp", ":0")
+
+	var wg sync.WaitGroup
+
+	errCh := make(chan error, 100)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer listener.Close()
+
+	go serve(listener, store)
+	conn, err := net.Dial("tcp", listener.Addr().String())
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer conn.Close()
+
+	commandSet := "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$2\r\n10\r\n"
+	_, err = conn.Write([]byte(commandSet))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader := bufio.NewReader(conn)
+	response, err := reader.ReadString('\n')
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if response != "+OK\r\n" {
+		t.Fatalf("expected response to be +OK\\r\\n but got %q", response)
+	}
+
+	for range 100 {
+		wg.Go(func() {
+			conn, err := net.Dial("tcp", listener.Addr().String())
+
+			if err != nil {
+				errCh <- err
+				return
+			}
+			defer conn.Close()
+
+			commandIncr := "*2\r\n$4\r\nINCR\r\n$3\r\nfoo\r\n"
+			_, err = conn.Write([]byte(commandIncr))
+
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			reader := bufio.NewReader(conn)
+			response, err := reader.ReadString('\n')
+
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			if !strings.HasPrefix(response, ":") {
+				errCh <- fmt.Errorf("unexpected INCR response: %q", response)
+				return
+			}
+
+			numberText := strings.TrimSuffix(
+				strings.TrimPrefix(response, ":"),
+				"\r\n",
+			)
+
+			_, err = strconv.Atoi(numberText)
+			if err != nil {
+				errCh <- fmt.Errorf("invalid INCR integer response: %q", response)
+				return
+			}
+
+		})
+
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	commandGet := "*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n"
+	_, err = conn.Write([]byte(commandGet))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	header, err := reader.ReadString('\n')
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	value, err := reader.ReadString('\n')
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	responseGet := header + value
+
+	if responseGet != "$3\r\n110\r\n" {
+		t.Fatalf("expected response $3\\r\\n110\\r\\n, got %q", responseGet)
 	}
 
 }
