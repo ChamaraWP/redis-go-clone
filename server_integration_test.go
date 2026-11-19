@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -300,4 +302,52 @@ func TestTCPConcurrentIncrement(t *testing.T) {
 		t.Fatalf("expected response $3\\r\\n110\\r\\n, got %q", responseGet)
 	}
 
+}
+
+func TestRespMalformedCommand(t *testing.T) {
+
+	store := NewStore()
+
+	listener, err := net.Listen("tcp", ":0")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer listener.Close()
+
+	go serve(listener, store)
+
+	conn, err := net.Dial("tcp", listener.Addr().String())
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer conn.Close()
+
+	malformedCommand := "*2\r\n$3\r\nGET\r\n$5\r\nfoo\r\n"
+
+	_, err = conn.Write([]byte(malformedCommand))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tcpConn, ok := conn.(*net.TCPConn)
+
+	if !ok {
+		t.Fatal("expected TCP connection")
+	}
+
+	if err := tcpConn.CloseWrite(); err != nil {
+		t.Fatal(err)
+	}
+
+	reader := bufio.NewReader(conn)
+
+	_, err = reader.ReadString('\n')
+
+	if !errors.Is(err, io.EOF) {
+		t.Fatalf("expected server to close connection, got %v", err)
+	}
 }
