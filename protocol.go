@@ -60,7 +60,7 @@ func readFullBytes(reader *bufio.Reader) (string, error) {
 	}
 
 	if len(line) < 4 || line[0] != '$' {
-		return "", errors.New("resp bulk parsing  failed")
+		return "", errors.New("resp bulk parsing failed")
 	}
 
 	lineText := line[1 : len(line)-2]
@@ -85,6 +85,10 @@ func readFullBytes(reader *bufio.Reader) (string, error) {
 
 	if err != nil {
 		return "", err
+	}
+
+	if string(crlf) != "\r\n" {
+		return "", errors.New("invalid crlf")
 	}
 
 	return string(buffer), nil
