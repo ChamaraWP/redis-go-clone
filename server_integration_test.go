@@ -351,3 +351,80 @@ func TestRespMalformedCommand(t *testing.T) {
 		t.Fatalf("expected server to close connection, got %v", err)
 	}
 }
+
+func TestRespInvalidCommand(t *testing.T) {
+
+	store := NewStore()
+
+	listener, err := net.Listen("tcp", ":0")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer listener.Close()
+
+	go serve(listener, store)
+
+	conn, err := net.Dial("tcp", listener.Addr().String())
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer conn.Close()
+
+	invalidGetCommand := "*3\r\n$3\r\nGET\r\n$3\r\nfoo\r\n$5\r\nextra\r\n"
+	_, err = conn.Write([]byte(invalidGetCommand))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader := bufio.NewReader(conn)
+	errorResponse, err := reader.ReadString('\n')
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.HasPrefix(errorResponse, "-ERR") {
+		t.Fatalf("expected RESP error, got %q", errorResponse)
+	}
+
+	validSetCommand := "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\nbar\r\n"
+	_, err = conn.Write([]byte(validSetCommand))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	setResponse, err := reader.ReadString('\n')
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if setResponse != "+OK\r\n" {
+		t.Fatalf("expected +OK\\r\\n, got %q", setResponse)
+	}
+
+	validGetCommand := "*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n"
+	_, err = conn.Write([]byte(validGetCommand))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	header, err := reader.ReadString('\n')
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	value, err := reader.ReadString('\n')
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	response := header + value
+
+	if response != "$3\r\nbar\r\n" {
+		t.Fatalf("expected response to be $3\\r\\nbar\\r\\n but got %q", response)
+	}
+
+}
