@@ -53,3 +53,14 @@ func TestReadArrayLengthInvalidArrayLength(t *testing.T) {
 		t.Fatal("expected invalid array length to throw an error")
 	}
 }
+
+func TestEncodeRespCommand(t *testing.T) {
+	command := []string{"SET", "foo", "bar"}
+
+	encodedCommand := string(encodeCommandRESP(command))
+	expected := "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\nbar\r\n"
+
+	if encodedCommand != expected {
+		t.Fatalf("expected %q, got %q", expected, encodedCommand)
+	}
+}
