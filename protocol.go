@@ -113,3 +113,22 @@ func encodeResponse(results CommandResult) string {
 func encodeError(err error) string {
 	return "-ERR " + err.Error() + "\r\n"
 }
+
+func encodeCommandRESP(command []string) []byte {
+	commandSize := len(command)
+
+	if commandSize == 0 {
+		return nil
+	}
+
+	respCommand := "*" + strconv.Itoa(commandSize) + "\r\n"
+
+	for _, value := range command {
+		header := "$" + strconv.Itoa(len(value)) + "\r\n"
+		encodedValue := value + "\r\n"
+		respCommand += header + encodedValue
+	}
+
+	return []byte(respCommand)
+
+}
