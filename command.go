@@ -22,7 +22,7 @@ type CommandResult struct {
 	Value string
 }
 
-func executeCommand(parts []string, store *Store) (CommandResult, error) {
+func executeCommand(parts []string, store *Store, persister Persister) (CommandResult, error) {
 	log.Printf("received payload %s", parts)
 
 	if len(parts) == 0 {
@@ -37,6 +37,12 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 		}
 		key := parts[1]
 		value := parts[2]
+
+		err := persister.Append(parts)
+
+		if err != nil {
+			return CommandResult{}, err
+		}
 
 		entry := Entry{
 			Value: value,
@@ -66,7 +72,9 @@ func executeCommand(parts []string, store *Store) (CommandResult, error) {
 			return CommandResult{}, errors.New("invalid INCR command")
 		}
 
-		value, err := store.Increment(parts[1])
+		value, err := store.Increment(parts[1], func() error {
+			return persister.Append(parts)
+		})
 
 		if err != nil {
 			return CommandResult{}, err
