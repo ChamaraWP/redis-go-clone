@@ -100,8 +100,19 @@ func executeCommand(parts []string, store *Store, persister Persister) (CommandR
 		}
 
 		timeInSeconds := time.Duration(seconds) * time.Second
+		absoluteTime := time.Now().Add(timeInSeconds)
 
-		value := store.Expire(parts[1], timeInSeconds)
+		persistedCommand := []string{
+			"EXPIREAT",
+			parts[1],
+			strconv.FormatInt(absoluteTime.Unix(), 10),
+		}
+
+		if err := persister.Append(persistedCommand); err != nil {
+			return CommandResult{}, err
+		}
+
+		value := store.Expire(parts[1], absoluteTime)
 
 		returnValue := "0"
 		if value {
@@ -155,6 +166,10 @@ func executeCommand(parts []string, store *Store, persister Persister) (CommandR
 	if command == "DEL" {
 		if (len(parts)) < 2 {
 			return CommandResult{}, errors.New("invalid DEL command")
+		}
+
+		if err := persister.Append(parts); err != nil {
+			return CommandResult{}, err
 		}
 
 		keys := parts[1:]

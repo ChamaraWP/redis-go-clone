@@ -98,7 +98,7 @@ func (s *Store) Increment(key string, beforeCommit func() error) (int, error) {
 
 }
 
-func (s *Store) Expire(key string, duration time.Duration) bool {
+func (s *Store) Expire(key string, expiresAt time.Time) bool {
 
 	s.mutex.Lock()
 
@@ -109,7 +109,6 @@ func (s *Store) Expire(key string, duration time.Duration) bool {
 	if !ok {
 		return false
 	}
-
 	now := time.Now()
 
 	if !entry.ExpiresAt.IsZero() && time.Now().After(entry.ExpiresAt) {
@@ -117,12 +116,13 @@ func (s *Store) Expire(key string, duration time.Duration) bool {
 		return false
 	}
 
-	if duration <= 0 {
+	if !expiresAt.After(now) {
 		delete(s.data, key)
 		return true
 	}
 
-	entry.ExpiresAt = now.Add(duration)
+	entry.ExpiresAt = expiresAt
+
 	fmt.Printf("expiry set to %+v\n", entry)
 
 	s.data[key] = entry
