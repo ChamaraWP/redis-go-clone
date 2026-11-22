@@ -9,6 +9,12 @@ import (
 func TestExecuteCommandExpireExistingKey(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("session", Entry{
 		Value: "abc",
 	})
@@ -19,7 +25,7 @@ func TestExecuteCommandExpireExistingKey(t *testing.T) {
 		"10",
 	}
 
-	result, err := executeCommand(parts, store)
+	result, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -37,6 +43,12 @@ func TestExecuteCommandExpireExistingKey(t *testing.T) {
 func TestExecuteCommandExpireExpiredKey(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("expiredKey", Entry{
 		Value:     "expiredKeyCommand",
 		ExpiresAt: time.Now().Add(-1 * time.Second),
@@ -48,7 +60,7 @@ func TestExecuteCommandExpireExpiredKey(t *testing.T) {
 		"10",
 	}
 
-	result, err := executeCommand(parts, store)
+	result, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -71,8 +83,13 @@ func TestExecuteCommandExpireExpiredKey(t *testing.T) {
 }
 
 func TestExecuteCommandInvalidDuration(t *testing.T) {
-
 	store := NewStore()
+
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
 
 	store.Set("invalidKey", Entry{
 		Value: "invalidKeyValue",
@@ -84,7 +101,7 @@ func TestExecuteCommandInvalidDuration(t *testing.T) {
 		"abc",
 	}
 
-	_, err := executeCommand(parts, store)
+	_, err = executeCommand(parts, store, persister)
 
 	if err == nil {
 		t.Fatal("expected error for invalid duration")
@@ -105,6 +122,12 @@ func TestExecuteCommandInvalidDuration(t *testing.T) {
 func TestExecuteCommandWrongArgumentCount(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("wrongArgument", Entry{
 		Value: "wrongArgumentValue",
 	})
@@ -116,7 +139,7 @@ func TestExecuteCommandWrongArgumentCount(t *testing.T) {
 		"extra",
 	}
 
-	_, err := executeCommand(parts, store)
+	_, err = executeCommand(parts, store, persister)
 
 	if err == nil {
 		t.Fatal("expected error for extra argument")
@@ -134,8 +157,13 @@ func TestExecuteCommandWrongArgumentCount(t *testing.T) {
 }
 
 func TestCommandTTLExtraArgument(t *testing.T) {
-
 	store := NewStore()
+
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
 
 	parts := []string{
 		"TTL",
@@ -143,7 +171,7 @@ func TestCommandTTLExtraArgument(t *testing.T) {
 		"abc",
 	}
 
-	_, err := executeCommand(parts, store)
+	_, err = executeCommand(parts, store, persister)
 
 	if err == nil {
 		t.Fatal("expected error for extra argument")
@@ -152,15 +180,20 @@ func TestCommandTTLExtraArgument(t *testing.T) {
 }
 
 func TestCommandTTLMissingKey(t *testing.T) {
-
 	store := NewStore()
+
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
 
 	parts := []string{
 		"TTL",
 		"TTLKeyMissing",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct status")
@@ -177,8 +210,13 @@ func TestCommandTTLMissingKey(t *testing.T) {
 }
 
 func TestCommandTTLNoExpiry(t *testing.T) {
-
 	store := NewStore()
+
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
 
 	store.Set("TTLNoExpiry", Entry{
 		Value: "ValueTTLNoExpiry",
@@ -189,7 +227,7 @@ func TestCommandTTLNoExpiry(t *testing.T) {
 		"TTLNoExpiry",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct status")
@@ -205,8 +243,13 @@ func TestCommandTTLNoExpiry(t *testing.T) {
 }
 
 func TestCommandTTLHasExpiry(t *testing.T) {
-
 	store := NewStore()
+
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
 
 	store.Set("TTLHasExpiry", Entry{
 		Value:     "ValueTTLHasExpiry",
@@ -218,7 +261,7 @@ func TestCommandTTLHasExpiry(t *testing.T) {
 		"TTLHasExpiry",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct status")
@@ -244,8 +287,13 @@ func TestCommandTTLHasExpiry(t *testing.T) {
 }
 
 func TestCommandTTLExpiredKey(t *testing.T) {
-
 	store := NewStore()
+
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
 
 	store.Set("ActiveKeyButExpired", Entry{
 		Value:     "ActiveKeyValueButExpired",
@@ -257,7 +305,7 @@ func TestCommandTTLExpiredKey(t *testing.T) {
 		"ActiveKeyButExpired",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct status")
@@ -275,6 +323,12 @@ func TestCommandTTLExpiredKey(t *testing.T) {
 func TestCommandDeleteExistingLiveKey(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("existingLiveKey", Entry{Value: "existingLiveValue"})
 
 	parts := []string{
@@ -282,7 +336,7 @@ func TestCommandDeleteExistingLiveKey(t *testing.T) {
 		"existingLiveKey",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct count")
@@ -307,6 +361,12 @@ func TestCommandDeleteExistingLiveKey(t *testing.T) {
 func TestCommandDeleteExpiredKey(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("expiredKey", Entry{Value: "expiredValue", ExpiresAt: time.Now().Add(-1 * time.Second)})
 
 	parts := []string{
@@ -314,7 +374,7 @@ func TestCommandDeleteExpiredKey(t *testing.T) {
 		"expiredKey",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct count")
@@ -339,6 +399,12 @@ func TestCommandDeleteExpiredKey(t *testing.T) {
 func TestCommandDeleteMixedKeys(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("a", Entry{Value: "A", ExpiresAt: time.Now().Add(10 * time.Second)})
 	store.Set("b", Entry{Value: "B", ExpiresAt: time.Now().Add(-10 * time.Second)})
 	store.Set("c", Entry{Value: "C"})
@@ -351,7 +417,7 @@ func TestCommandDeleteMixedKeys(t *testing.T) {
 		"d",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct count")
@@ -378,13 +444,19 @@ func TestCommandDeleteMixedKeys(t *testing.T) {
 func TestCommandDeleteMissingArguments(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("wrongArgsCount", Entry{Value: "wrongArgsCountValue"})
 
 	parts := []string{
 		"DEL",
 	}
 
-	_, err := executeCommand(parts, store)
+	_, err = executeCommand(parts, store, persister)
 
 	if err == nil {
 		t.Fatal("expected error for insufficient argument")
@@ -395,6 +467,12 @@ func TestCommandDeleteMissingArguments(t *testing.T) {
 func TestCommandExistsLiveKey(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("existingKey", Entry{Value: "existingValue"})
 
 	parts := []string{
@@ -402,7 +480,7 @@ func TestCommandExistsLiveKey(t *testing.T) {
 		"existingKey",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct count")
@@ -427,12 +505,18 @@ func TestCommandExistsLiveKey(t *testing.T) {
 func TestCommandExistsMissingKey(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	parts := []string{
 		"EXISTS",
 		"missingKey",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct count")
@@ -457,6 +541,12 @@ func TestCommandExistsMissingKey(t *testing.T) {
 func TestCommandExistsExpiredKey(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("expiredKey", Entry{Value: "expiredValue", ExpiresAt: time.Now().Add(-1 * time.Second)})
 
 	parts := []string{
@@ -464,7 +554,7 @@ func TestCommandExistsExpiredKey(t *testing.T) {
 		"expiredKey",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct count")
@@ -489,6 +579,12 @@ func TestCommandExistsExpiredKey(t *testing.T) {
 func TestCommandExistsMixedKeys(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("a", Entry{Value: "A", ExpiresAt: time.Now().Add(10 * time.Second)})
 	store.Set("b", Entry{Value: "B", ExpiresAt: time.Now().Add(-10 * time.Second)})
 	store.Set("c", Entry{Value: "C"})
@@ -501,7 +597,7 @@ func TestCommandExistsMixedKeys(t *testing.T) {
 		"d",
 	}
 
-	value, err := executeCommand(parts, store)
+	value, err := executeCommand(parts, store, persister)
 
 	if err != nil {
 		t.Fatal("expect to give correct count")
@@ -532,13 +628,19 @@ func TestCommandExistsMixedKeys(t *testing.T) {
 func TestCommandExistsMissingArguments(t *testing.T) {
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	store.Set("wrongArgsCount", Entry{Value: "wrongArgsCountValue"})
 
 	parts := []string{
 		"EXISTS",
 	}
 
-	_, err := executeCommand(parts, store)
+	_, err = executeCommand(parts, store, persister)
 
 	if err == nil {
 		t.Fatal("expected error for insufficient argument")

@@ -131,7 +131,15 @@ func TestStoreIncrement(t *testing.T) {
 
 	store.Set("incr", Entry{Value: "11"})
 
-	value, err := store.Increment("incr")
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	value, err := store.Increment("incr", func() error {
+		return persister.Append([]string{"INCR", "incr"})
+	})
 
 	if err != nil {
 		t.Fatalf("increment failed")
@@ -158,7 +166,15 @@ func TestStoreIncrementNonNumeric(t *testing.T) {
 
 	store.Set("counter", Entry{Value: "hello"})
 
-	_, err := store.Increment("counter")
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	_, err = store.Increment("counter", func() error {
+		return persister.Append([]string{"INCR", "counter"})
+	})
 
 	if err == nil {
 		t.Fatal("expected increment to return an error for non-numeric value")
@@ -180,7 +196,15 @@ func TestAutoIncrementMissingKey(t *testing.T) {
 
 	store := NewStore()
 
-	value, err := store.Increment("incr")
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	value, err := store.Increment("incr", func() error {
+		return persister.Append([]string{"INCR", "incr"})
+	})
 
 	if err != nil {
 		t.Fatal("increment failed for missing key")
@@ -206,6 +230,12 @@ func TestStoreConcurrentIncrement(t *testing.T) {
 
 	store := NewStore()
 
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
 	var wg sync.WaitGroup
 
 	for i := 0; i < 100; i++ {
@@ -214,7 +244,9 @@ func TestStoreConcurrentIncrement(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			_, err := store.Increment("counter")
+			_, err := store.Increment("counter", func() error {
+				return persister.Append([]string{"INCR", "counter"})
+			})
 
 			if err != nil {
 				t.Errorf("increment failed: %v", err)
@@ -245,7 +277,15 @@ func TestStoreIncrementWithNoExpiredTtl(t *testing.T) {
 
 	store.Set("incr", Entry{Value: "11", ExpiresAt: expiresAt})
 
-	value, err := store.Increment("incr")
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	value, err := store.Increment("incr", func() error {
+		return persister.Append([]string{"INCR", "incr"})
+	})
 
 	if err != nil {
 		t.Fatalf("increment failed")
@@ -275,7 +315,15 @@ func TestStoreIncrementWithExpiredTtl(t *testing.T) {
 
 	store.Set("incr", Entry{Value: "11", ExpiresAt: expiresAt})
 
-	value, err := store.Increment("incr")
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	value, err := store.Increment("incr", func() error {
+		return persister.Append([]string{"INCR", "incr"})
+	})
 
 	if err != nil {
 		t.Fatalf("increment failed")
@@ -309,7 +357,15 @@ func TestStoreIncrementWithNonNumericWithTtl(t *testing.T) {
 
 	store.Set("incr", Entry{Value: "hello", ExpiresAt: expiresAt})
 
-	_, err := store.Increment("incr")
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	_, err = store.Increment("incr", func() error {
+		return persister.Append([]string{"INCR", "incr"})
+	})
 
 	if err == nil {
 		t.Fatal("expected increment to return an error for non-numeric value")

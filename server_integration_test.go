@@ -16,14 +16,18 @@ func TestTCPSetCommand(t *testing.T) {
 	store := NewStore()
 
 	listener, err := net.Listen("tcp", ":0")
-
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer listener.Close()
 
-	go serve(listener, store)
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	go serve(listener, store, persister)
 
 	conn, err := net.Dial("tcp", listener.Addr().String())
 
@@ -53,14 +57,18 @@ func TestTCPSetAndGet(t *testing.T) {
 	store := NewStore()
 
 	listener, err := net.Listen("tcp", ":0")
-
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer listener.Close()
 
-	go serve(listener, store)
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	go serve(listener, store, persister)
 
 	conn, err := net.Dial("tcp", listener.Addr().String())
 
@@ -116,14 +124,18 @@ func TestTCPSharedStateAcrossConnections(t *testing.T) {
 	store := NewStore()
 
 	listener, err := net.Listen("tcp", ":0")
-
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer listener.Close()
 
-	go serve(listener, store)
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	go serve(listener, store, persister)
 
 	connA, err := net.Dial("tcp", listener.Addr().String())
 
@@ -186,20 +198,22 @@ func TestTCPSharedStateAcrossConnections(t *testing.T) {
 func TestTCPConcurrentIncrement(t *testing.T) {
 
 	store := NewStore()
-
-	listener, err := net.Listen("tcp", ":0")
-
 	var wg sync.WaitGroup
 
+	listener, err := net.Listen("tcp", ":0")
 	errCh := make(chan error, 100)
-
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer listener.Close()
 
-	go serve(listener, store)
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	go serve(listener, store, persister)
 	conn, err := net.Dial("tcp", listener.Addr().String())
 
 	if err != nil {
@@ -305,18 +319,21 @@ func TestTCPConcurrentIncrement(t *testing.T) {
 }
 
 func TestRespMalformedCommand(t *testing.T) {
-
 	store := NewStore()
 
 	listener, err := net.Listen("tcp", ":0")
-
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer listener.Close()
 
-	go serve(listener, store)
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+
+	go serve(listener, store, persister)
 
 	conn, err := net.Dial("tcp", listener.Addr().String())
 
@@ -357,14 +374,17 @@ func TestRespInvalidCommand(t *testing.T) {
 	store := NewStore()
 
 	listener, err := net.Listen("tcp", ":0")
-
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer listener.Close()
 
-	go serve(listener, store)
+	persister, err := NewFilePersister("appendonlytest.aof")
+	if err != nil {
+		t.Fatal("file initialization failed", err)
+	}
+	defer persister.Close()
+	go serve(listener, store, persister)
 
 	conn, err := net.Dial("tcp", listener.Addr().String())
 
