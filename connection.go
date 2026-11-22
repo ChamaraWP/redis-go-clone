@@ -12,7 +12,7 @@ import (
 // TCP listener and check whether it is EOF or has any other error
 // if not i will keep accepting the data and if the function return it will
 // automatically clean it up
-func handleConnection(conn net.Conn, store *Store) {
+func handleConnection(conn net.Conn, store *Store, persister Persister) {
 	defer conn.Close()
 
 	log.Println("Connection stablish", conn.RemoteAddr().String())
@@ -31,7 +31,7 @@ func handleConnection(conn net.Conn, store *Store) {
 			return
 		}
 
-		results, err := executeCommand(values, store)
+		results, err := executeCommand(values, store, persister)
 
 		if err != nil {
 			response := encodeError(err)

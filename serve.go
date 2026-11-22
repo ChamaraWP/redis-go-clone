@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-func serve(listener net.Listener, store *Store) {
+func serve(listener net.Listener, store *Store, persister Persister) {
 	for {
 		conn, err := listener.Accept()
 
@@ -14,6 +14,6 @@ func serve(listener net.Listener, store *Store) {
 			continue
 		}
 
-		go handleConnection(conn, store)
+		go handleConnection(conn, store, persister)
 	}
 }
