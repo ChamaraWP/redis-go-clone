@@ -59,12 +59,18 @@ func (s *Store) Get(key string) (string, bool) {
 	return entry.Value, ok
 }
 
-func (s *Store) Increment(key string) (int, error) {
+func (s *Store) Increment(key string, beforeCommit func() error) (int, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
 	entry, ok := s.data[key]
 
 	if !ok || (!entry.ExpiresAt.IsZero() && time.Now().After(entry.ExpiresAt)) {
+
+		if err := beforeCommit(); err != nil {
+			return 0, err
+		}
+
 		s.data[key] = Entry{
 			Value: "1",
 		}
@@ -77,13 +83,18 @@ func (s *Store) Increment(key string) (int, error) {
 		return 0, errors.New("value is not a number")
 	}
 
-	integerValue++
+	nextValue := integerValue + 1
+
+	if err := beforeCommit(); err != nil {
+		return 0, errors.New("value is not a number")
+	}
+
 	s.data[key] = Entry{
-		Value:     strconv.Itoa(integerValue),
+		Value:     strconv.Itoa(nextValue),
 		ExpiresAt: entry.ExpiresAt,
 	}
 
-	return integerValue, nil
+	return nextValue, nil
 
 }
 
