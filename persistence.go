@@ -42,6 +42,18 @@ func (p *FilePersister) Append(command []string) error {
 		return errors.New("incomplete command write")
 	}
 
+	if err := p.Sync(); err != nil {
+		return err
+	}
+
 	return nil
 
+}
+
+func (p *FilePersister) Close() error {
+	return p.file.Close()
+}
+
+func (p *FilePersister) Sync() error {
+	return p.file.Sync()
 }
