@@ -23,6 +23,32 @@ type CommandResult struct {
 }
 
 func executeCommand(parts []string, store *Store, persister Persister) (CommandResult, error) {
+	return runCommand(
+		parts,
+		store,
+		func(command []string) error {
+			return persister.Append(command)
+		},
+	)
+
+}
+
+func replayCommand(parts []string, store *Store) (CommandResult, error) {
+	return runCommand(
+		parts,
+		store,
+		func(command []string) error {
+			return nil
+		},
+	)
+
+}
+
+func runCommand(
+	parts []string,
+	store *Store,
+	beforeMutation func([]string) error,
+) (CommandResult, error) {
 	log.Printf("received payload %s", parts)
 
 	if len(parts) == 0 {
@@ -38,9 +64,7 @@ func executeCommand(parts []string, store *Store, persister Persister) (CommandR
 		key := parts[1]
 		value := parts[2]
 
-		err := persister.Append(parts)
-
-		if err != nil {
+		if err := beforeMutation(parts); err != nil {
 			return CommandResult{}, err
 		}
 
@@ -73,7 +97,7 @@ func executeCommand(parts []string, store *Store, persister Persister) (CommandR
 		}
 
 		value, err := store.Increment(parts[1], func() error {
-			return persister.Append(parts)
+			return beforeMutation(parts)
 		})
 
 		if err != nil {
@@ -108,11 +132,11 @@ func executeCommand(parts []string, store *Store, persister Persister) (CommandR
 			strconv.FormatInt(absoluteTime.Unix(), 10),
 		}
 
-		if err := persister.Append(persistedCommand); err != nil {
+		if err := beforeMutation(persistedCommand); err != nil {
 			return CommandResult{}, err
 		}
 
-		value := store.Expire(parts[1], absoluteTime)
+		value := store.ExpireAt(parts[1], absoluteTime)
 
 		returnValue := "0"
 		if value {
@@ -124,6 +148,31 @@ func executeCommand(parts []string, store *Store, persister Persister) (CommandR
 			Value: returnValue,
 		}, nil
 
+	}
+
+	if command == "EXPIREAT" {
+		if len(parts) != 3 {
+			return CommandResult{}, errors.New("invalid EXPIREAT command")
+		}
+
+		timestamp, err := strconv.ParseInt(parts[2], 10, 64)
+		if err != nil {
+			return CommandResult{}, err
+		}
+
+		expiresAt := time.Unix(timestamp, 0)
+
+		value := store.ExpireAt(parts[1], expiresAt)
+
+		returnValue := "0"
+		if value {
+			returnValue = "1"
+		}
+
+		return CommandResult{
+			Type:  ResponseInteger,
+			Value: returnValue,
+		}, nil
 	}
 
 	if command == "TTL" {
@@ -168,7 +217,7 @@ func executeCommand(parts []string, store *Store, persister Persister) (CommandR
 			return CommandResult{}, errors.New("invalid DEL command")
 		}
 
-		if err := persister.Append(parts); err != nil {
+		if err := beforeMutation(parts); err != nil {
 			return CommandResult{}, err
 		}
 
