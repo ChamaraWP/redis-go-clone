@@ -98,7 +98,7 @@ func (s *Store) Increment(key string, beforeCommit func() error) (int, error) {
 
 }
 
-func (s *Store) Expire(key string, expiresAt time.Time) bool {
+func (s *Store) ExpireAt(key string, expiresAt time.Time) bool {
 
 	s.mutex.Lock()
 

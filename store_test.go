@@ -396,7 +396,7 @@ func TestExistingKeyPositiveDuration(t *testing.T) {
 
 	expiresAt := time.Now().Add(20 * time.Second)
 
-	ok := store.Expire("session", expiresAt)
+	ok := store.ExpireAt("session", expiresAt)
 
 	if !ok {
 		t.Fatal("expected EXPIRE to succeed")
@@ -425,7 +425,7 @@ func TestStoreExpireWithMissingKey(t *testing.T) {
 
 	expiresAt := time.Now().Add(20 * time.Second)
 
-	ok := store.Expire("noKey", expiresAt)
+	ok := store.ExpireAt("noKey", expiresAt)
 
 	if ok {
 		t.Fatal("expected EXPIRE to return false for missing key")
@@ -448,7 +448,7 @@ func TestStoreAlreadyExpiredKey(t *testing.T) {
 
 	expiresAt := time.Now().Add(20 * time.Second)
 
-	ok := store.Expire("expiredSession", expiresAt)
+	ok := store.ExpireAt("expiredSession", expiresAt)
 
 	if ok {
 		t.Fatal("expected EXPIRE to return false expired entry")
@@ -471,7 +471,7 @@ func TestStoreWithExistingKeyWithZeroOrMinusTtl(t *testing.T) {
 
 	expiresAt := time.Now().Add(0 * time.Second)
 
-	ok := store.Expire("session", expiresAt)
+	ok := store.ExpireAt("session", expiresAt)
 
 	if !ok {
 		t.Fatal("expected EXPIRE to succeed for existing key")
