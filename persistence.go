@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"sync"
 )
 
 type Persister interface {
@@ -10,7 +11,8 @@ type Persister interface {
 }
 
 type FilePersister struct {
-	file *os.File
+	file  *os.File
+	mutex sync.Mutex
 }
 
 func NewFilePersister(path string) (*FilePersister, error) {
@@ -27,11 +29,14 @@ func NewFilePersister(path string) (*FilePersister, error) {
 }
 
 func (p *FilePersister) Append(command []string) error {
-
 	encodedCommand := encodeCommandRESP(command)
 	if len(encodedCommand) == 0 {
 		return errors.New("cannot persist empty command")
 	}
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	writtenByteLength, err := p.file.Write(encodedCommand)
 
 	if err != nil {
